@@ -26,34 +26,141 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    // Add touch/swipe support for mobile
+    // Add touch/swipe support for mobile with real-time tracking
     let startX = 0;
-    let endX = 0;
+    let currentX = 0;
+    let isDragging = false;
+    let currentSlideElement = null;
+    let nextSlideElement = null;
+    let prevSlideElement = null;
+    let dragDirection = 0;
     
     const slideshowContainer = document.querySelector('.slideshow-container');
     
     slideshowContainer.addEventListener('touchstart', function(e) {
-        startX = e.touches[0].clientX;
+        if (window.innerWidth <= 768) {
+            startX = e.touches[0].clientX;
+            currentX = startX;
+            isDragging = true;
+            
+            // Get current and adjacent slides
+            currentSlideElement = slides[currentSlideIndex];
+            nextSlideElement = slides[(currentSlideIndex + 1) % slides.length];
+            prevSlideElement = slides[(currentSlideIndex - 1 + slides.length) % slides.length];
+            
+            // Disable transitions during drag
+            currentSlideElement.style.transition = 'none';
+            if (nextSlideElement) nextSlideElement.style.transition = 'none';
+            if (prevSlideElement) prevSlideElement.style.transition = 'none';
+            
+            // Position adjacent slides
+            nextSlideElement.style.transform = 'translateX(100%)';
+            prevSlideElement.style.transform = 'translateX(-100%)';
+            nextSlideElement.style.opacity = '1';
+            prevSlideElement.style.opacity = '1';
+        }
+    });
+    
+    slideshowContainer.addEventListener('touchmove', function(e) {
+        if (isDragging && window.innerWidth <= 768) {
+            e.preventDefault();
+            currentX = e.touches[0].clientX;
+            const diff = startX - currentX;
+            const percentage = diff / slideshowContainer.offsetWidth;
+            
+            // Limit the drag range
+            const clampedPercentage = Math.max(-1, Math.min(1, percentage));
+            
+            if (clampedPercentage > 0) {
+                // Dragging left (showing next slide)
+                dragDirection = 1;
+                currentSlideElement.style.transform = `translateX(-${clampedPercentage * 100}%)`;
+                nextSlideElement.style.transform = `translateX(${(1 - clampedPercentage) * 100}%)`;
+                prevSlideElement.style.transform = 'translateX(-100%)';
+            } else {
+                // Dragging right (showing previous slide)
+                dragDirection = -1;
+                currentSlideElement.style.transform = `translateX(${Math.abs(clampedPercentage) * 100}%)`;
+                prevSlideElement.style.transform = `translateX(${-100 + Math.abs(clampedPercentage) * 100}%)`;
+                nextSlideElement.style.transform = 'translateX(100%)';
+            }
+        }
     });
     
     slideshowContainer.addEventListener('touchend', function(e) {
-        endX = e.changedTouches[0].clientX;
-        handleSwipe();
-    });
-    
-    function handleSwipe() {
-        const swipeThreshold = 50;
-        const diff = startX - endX;
-        
-        if (Math.abs(diff) > swipeThreshold) {
-            if (diff > 0) {
-                // Swipe left - next slide
-                changeSlide(1);
+        if (isDragging && window.innerWidth <= 768) {
+            isDragging = false;
+            const diff = startX - currentX;
+            const percentage = diff / slideshowContainer.offsetWidth;
+            const threshold = 0.3; // 30% threshold to trigger slide change
+            
+            // Re-enable transitions
+            currentSlideElement.style.transition = '';
+            if (nextSlideElement) nextSlideElement.style.transition = '';
+            if (prevSlideElement) prevSlideElement.style.transition = '';
+            
+            if (Math.abs(percentage) > threshold) {
+                // Complete the slide change
+                if (percentage > 0) {
+                    // Swipe left - next slide
+                    changeSlideWithAnimation(1);
+                } else {
+                    // Swipe right - previous slide
+                    changeSlideWithAnimation(-1);
+                }
             } else {
-                // Swipe right - previous slide
-                changeSlide(-1);
+                // Snap back to current slide
+                snapBackToCurrent();
             }
         }
+    });
+    
+    function changeSlideWithAnimation(direction) {
+        const newSlideIndex = (currentSlideIndex + direction + slides.length) % slides.length;
+        const newSlide = slides[newSlideIndex];
+        
+        // Animate to final position
+        if (direction > 0) {
+            currentSlideElement.style.transform = 'translateX(-100%)';
+            newSlide.style.transform = 'translateX(0)';
+        } else {
+            currentSlideElement.style.transform = 'translateX(100%)';
+            newSlide.style.transform = 'translateX(0)';
+        }
+        
+        // Update active states
+        setTimeout(() => {
+            currentSlideElement.classList.remove('active');
+            newSlide.classList.add('active');
+            indicators[currentSlideIndex % indicators.length].classList.remove('active');
+            indicators[newSlideIndex % indicators.length].classList.add('active');
+            currentSlideIndex = newSlideIndex;
+            
+            // Reset all slide positions
+            resetSlidePositions();
+        }, 300);
+    }
+    
+    function snapBackToCurrent() {
+        currentSlideElement.style.transform = 'translateX(0)';
+        if (nextSlideElement) nextSlideElement.style.transform = 'translateX(100%)';
+        if (prevSlideElement) prevSlideElement.style.transform = 'translateX(-100%)';
+        
+        setTimeout(() => {
+            resetSlidePositions();
+        }, 300);
+    }
+    
+    function resetSlidePositions() {
+        slides.forEach((slide, index) => {
+            if (index === currentSlideIndex) {
+                slide.style.transform = 'translateX(0)';
+                slide.style.opacity = '1';
+            } else {
+                slide.style.transform = '';
+                slide.style.opacity = '';
+            }
+        });
     }
     
     // Pause auto-slide on hover (desktop only)
