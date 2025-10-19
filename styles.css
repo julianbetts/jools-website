@@ -85,7 +85,7 @@ body {
     width: 100%;
     height: 100%;
     opacity: 0;
-    transition: opacity 1.5s ease-in-out;
+    transition: opacity 1.5s ease-in-out, transform 0.5s ease-in-out;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -93,6 +93,37 @@ body {
 
 .slide.active {
     opacity: 1;
+    transform: translateX(0);
+}
+
+.slide.slide-left {
+    transform: translateX(-100%);
+}
+
+.slide.slide-right {
+    transform: translateX(100%);
+}
+
+/* Mobile sliding animations */
+@media (max-width: 768px) {
+    .slide {
+        transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+    }
+    
+    .slide.active {
+        opacity: 1;
+        transform: translateX(0);
+    }
+    
+    .slide.slide-left {
+        transform: translateX(-100%);
+        opacity: 0;
+    }
+    
+    .slide.slide-right {
+        transform: translateX(100%);
+        opacity: 0;
+    }
 }
 
 .slide-image {

@@ -71,23 +71,57 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Function to change slides
 function changeSlide(direction) {
-    // Remove active class from current slide and indicator
-    slides[currentSlideIndex].classList.remove('active');
-    indicators[currentSlideIndex % indicators.length].classList.remove('active');
+    const isMobile = window.innerWidth <= 768;
+    const currentSlide = slides[currentSlideIndex];
     
     // Calculate new slide index
-    currentSlideIndex += direction;
+    let newSlideIndex = currentSlideIndex + direction;
     
     // Handle wrap-around
-    if (currentSlideIndex >= slides.length) {
-        currentSlideIndex = 0;
-    } else if (currentSlideIndex < 0) {
-        currentSlideIndex = slides.length - 1;
+    if (newSlideIndex >= slides.length) {
+        newSlideIndex = 0;
+    } else if (newSlideIndex < 0) {
+        newSlideIndex = slides.length - 1;
     }
     
-    // Add active class to new slide and indicator
-    slides[currentSlideIndex].classList.add('active');
-    indicators[currentSlideIndex % indicators.length].classList.add('active');
+    const newSlide = slides[newSlideIndex];
+    
+    if (isMobile) {
+        // Mobile: Use sliding animations
+        // Set up the new slide position based on direction
+        if (direction > 0) {
+            // Moving to next slide (swipe left)
+            newSlide.classList.add('slide-right');
+            newSlide.classList.remove('slide-left');
+        } else {
+            // Moving to previous slide (swipe right)
+            newSlide.classList.add('slide-left');
+            newSlide.classList.remove('slide-right');
+        }
+        
+        // Remove active class from current slide and indicator
+        currentSlide.classList.remove('active');
+        indicators[currentSlideIndex % indicators.length].classList.remove('active');
+        
+        // Add active class to new slide and indicator
+        newSlide.classList.add('active');
+        indicators[newSlideIndex % indicators.length].classList.add('active');
+        
+        // Clean up classes after animation
+        setTimeout(() => {
+            currentSlide.classList.remove('slide-left', 'slide-right');
+            newSlide.classList.remove('slide-left', 'slide-right');
+        }, 300);
+    } else {
+        // Desktop: Use fade transition
+        currentSlide.classList.remove('active');
+        indicators[currentSlideIndex % indicators.length].classList.remove('active');
+        
+        newSlide.classList.add('active');
+        indicators[newSlideIndex % indicators.length].classList.add('active');
+    }
+    
+    currentSlideIndex = newSlideIndex;
     
     // Reset auto-slide timer (desktop only)
     if (window.innerWidth > 768) {
@@ -99,18 +133,49 @@ function changeSlide(direction) {
 function currentSlide(slideNumber) {
     // Convert to 0-based index
     const targetIndex = slideNumber - 1;
+    const isMobile = window.innerWidth <= 768;
     
-    if (targetIndex >= 0 && targetIndex < slides.length) {
-        // Remove active class from current slide and indicator
-        slides[currentSlideIndex].classList.remove('active');
-        indicators[currentSlideIndex % indicators.length].classList.remove('active');
+    if (targetIndex >= 0 && targetIndex < slides.length && targetIndex !== currentSlideIndex) {
+        const currentSlide = slides[currentSlideIndex];
+        const newSlide = slides[targetIndex];
         
-        // Set new current slide
+        if (isMobile) {
+            // Mobile: Use sliding animation based on direction
+            const direction = targetIndex > currentSlideIndex ? 1 : -1;
+            
+            if (direction > 0) {
+                // Moving forward
+                newSlide.classList.add('slide-right');
+                newSlide.classList.remove('slide-left');
+            } else {
+                // Moving backward
+                newSlide.classList.add('slide-left');
+                newSlide.classList.remove('slide-right');
+            }
+            
+            // Remove active class from current slide and indicator
+            currentSlide.classList.remove('active');
+            indicators[currentSlideIndex % indicators.length].classList.remove('active');
+            
+            // Add active class to new slide and indicator
+            newSlide.classList.add('active');
+            indicators[targetIndex % indicators.length].classList.add('active');
+            
+            // Clean up classes after animation
+            setTimeout(() => {
+                currentSlide.classList.remove('slide-left', 'slide-right');
+                newSlide.classList.remove('slide-left', 'slide-right');
+            }, 300);
+        } else {
+            // Desktop: Use fade transition
+            currentSlide.classList.remove('active');
+            indicators[currentSlideIndex % indicators.length].classList.remove('active');
+            
+            newSlide.classList.add('active');
+            indicators[targetIndex % indicators.length].classList.add('active');
+        }
+        
         currentSlideIndex = targetIndex;
-        
-        // Add active class to new slide and indicator
-        slides[currentSlideIndex].classList.add('active');
-        indicators[currentSlideIndex % indicators.length].classList.add('active');
         
         // Reset auto-slide timer (desktop only)
         if (window.innerWidth > 768) {
@@ -156,7 +221,6 @@ function preloadImages() {
         'assets/jools-art/CPG_jools rothblatt_red.jpg',
         'assets/jools-art/CPG_Jools Rothblatt_Ringside L.jpg',
         'assets/jools-art/CPG_jools rothblatt_the valley.jpg',
-        'assets/jools-art/CPG_jools rothblatt_the valley(1).jpg',
         'assets/jools-art/CPG_jools rothblatt_underdogs.jpg',
         'assets/jools-art/CPG_Joools rothblatt_night clubbing.jpg'
     ];
