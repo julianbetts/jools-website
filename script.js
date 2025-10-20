@@ -26,13 +26,10 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    // Add touch/swipe support for mobile - Instagram style
+    // Add touch/swipe support for mobile - simple carousel style
     let startX = 0;
     let currentX = 0;
     let isDragging = false;
-    let currentSlideElement = null;
-    let nextSlideElement = null;
-    let prevSlideElement = null;
     
     const slideshowContainer = document.querySelector('.slideshow-container');
     
@@ -42,21 +39,10 @@ document.addEventListener('DOMContentLoaded', function() {
             currentX = startX;
             isDragging = true;
             
-            // Get current and adjacent slides
-            currentSlideElement = slides[currentSlideIndex];
-            nextSlideElement = slides[(currentSlideIndex + 1) % slides.length];
-            prevSlideElement = slides[(currentSlideIndex - 1 + slides.length) % slides.length];
-            
-            // Disable all transitions
+            // Disable all transitions during drag
             slides.forEach(slide => {
                 slide.style.transition = 'none';
             });
-            
-            // Position adjacent slides
-            nextSlideElement.style.transform = 'translateX(100%)';
-            prevSlideElement.style.transform = 'translateX(-100%)';
-            nextSlideElement.style.opacity = '1';
-            prevSlideElement.style.opacity = '1';
         }
     });
     
@@ -67,20 +53,11 @@ document.addEventListener('DOMContentLoaded', function() {
             const diff = startX - currentX;
             const percentage = diff / slideshowContainer.offsetWidth;
             
-            // Limit the drag range
-            const clampedPercentage = Math.max(-1, Math.min(1, percentage));
-            
-            if (clampedPercentage > 0) {
-                // Dragging left (showing next slide)
-                currentSlideElement.style.transform = `translateX(-${clampedPercentage * 100}%)`;
-                nextSlideElement.style.transform = `translateX(${(1 - clampedPercentage) * 100}%)`;
-                prevSlideElement.style.transform = 'translateX(-100%)';
-            } else {
-                // Dragging right (showing previous slide)
-                currentSlideElement.style.transform = `translateX(${Math.abs(clampedPercentage) * 100}%)`;
-                prevSlideElement.style.transform = `translateX(${-100 + Math.abs(clampedPercentage) * 100}%)`;
-                nextSlideElement.style.transform = 'translateX(100%)';
-            }
+            // Move all slides together as one carousel
+            slides.forEach((slide, index) => {
+                const slideOffset = (index - currentSlideIndex) * 100;
+                slide.style.transform = `translateX(${slideOffset + percentage * 100}%)`;
+            });
         }
     });
     
@@ -92,7 +69,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const threshold = 0.2; // 20% threshold to trigger slide change
             
             if (Math.abs(percentage) > threshold) {
-                // Complete the slide change - no animation, just instant switch
+                // Complete the slide change
                 if (percentage > 0) {
                     // Swipe left - next slide
                     currentSlideIndex = (currentSlideIndex + 1) % slides.length;
@@ -100,38 +77,26 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Swipe right - previous slide
                     currentSlideIndex = (currentSlideIndex - 1 + slides.length) % slides.length;
                 }
-                
-                // Update active states instantly
-                slides.forEach((slide, index) => {
-                    if (index === currentSlideIndex) {
-                        slide.classList.add('active');
-                        slide.style.transform = 'translateX(0)';
-                        slide.style.opacity = '1';
-                    } else {
-                        slide.classList.remove('active');
-                        slide.style.transform = '';
-                        slide.style.opacity = '';
-                    }
-                });
-                
-                // Update indicators
-                indicators.forEach((indicator, index) => {
-                    if (index === currentSlideIndex) {
-                        indicator.classList.add('active');
-                    } else {
-                        indicator.classList.remove('active');
-                    }
-                });
-            } else {
-                // Snap back to current slide - no animation
-                currentSlideElement.style.transform = 'translateX(0)';
-                nextSlideElement.style.transform = 'translateX(100%)';
-                prevSlideElement.style.transform = 'translateX(-100%)';
             }
             
-            // Re-enable transitions for future interactions
-            slides.forEach(slide => {
+            // Reset all slides to their correct positions
+            slides.forEach((slide, index) => {
                 slide.style.transition = '';
+                slide.style.transform = '';
+                if (index === currentSlideIndex) {
+                    slide.classList.add('active');
+                } else {
+                    slide.classList.remove('active');
+                }
+            });
+            
+            // Update indicators
+            indicators.forEach((indicator, index) => {
+                if (index === currentSlideIndex) {
+                    indicator.classList.add('active');
+                } else {
+                    indicator.classList.remove('active');
+                }
             });
         }
     });

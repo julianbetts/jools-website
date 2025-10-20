@@ -104,25 +104,15 @@ body {
     transform: translateX(100%);
 }
 
-/* Mobile sliding animations */
+/* Mobile - no transitions */
 @media (max-width: 768px) {
     .slide {
-        transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+        transition: none !important;
     }
     
     .slide.active {
         opacity: 1;
         transform: translateX(0);
-    }
-    
-    .slide.slide-left {
-        transform: translateX(-100%);
-        opacity: 0;
-    }
-    
-    .slide.slide-right {
-        transform: translateX(100%);
-        opacity: 0;
     }
 }
 
