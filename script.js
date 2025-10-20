@@ -26,14 +26,13 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    // Add touch/swipe support for mobile with real-time tracking
+    // Add touch/swipe support for mobile - Instagram style
     let startX = 0;
     let currentX = 0;
     let isDragging = false;
     let currentSlideElement = null;
     let nextSlideElement = null;
     let prevSlideElement = null;
-    let dragDirection = 0;
     
     const slideshowContainer = document.querySelector('.slideshow-container');
     
@@ -48,10 +47,10 @@ document.addEventListener('DOMContentLoaded', function() {
             nextSlideElement = slides[(currentSlideIndex + 1) % slides.length];
             prevSlideElement = slides[(currentSlideIndex - 1 + slides.length) % slides.length];
             
-            // Disable transitions during drag
-            currentSlideElement.style.transition = 'none';
-            if (nextSlideElement) nextSlideElement.style.transition = 'none';
-            if (prevSlideElement) prevSlideElement.style.transition = 'none';
+            // Disable all transitions
+            slides.forEach(slide => {
+                slide.style.transition = 'none';
+            });
             
             // Position adjacent slides
             nextSlideElement.style.transform = 'translateX(100%)';
@@ -73,13 +72,11 @@ document.addEventListener('DOMContentLoaded', function() {
             
             if (clampedPercentage > 0) {
                 // Dragging left (showing next slide)
-                dragDirection = 1;
                 currentSlideElement.style.transform = `translateX(-${clampedPercentage * 100}%)`;
                 nextSlideElement.style.transform = `translateX(${(1 - clampedPercentage) * 100}%)`;
                 prevSlideElement.style.transform = 'translateX(-100%)';
             } else {
                 // Dragging right (showing previous slide)
-                dragDirection = -1;
                 currentSlideElement.style.transform = `translateX(${Math.abs(clampedPercentage) * 100}%)`;
                 prevSlideElement.style.transform = `translateX(${-100 + Math.abs(clampedPercentage) * 100}%)`;
                 nextSlideElement.style.transform = 'translateX(100%)';
@@ -92,76 +89,52 @@ document.addEventListener('DOMContentLoaded', function() {
             isDragging = false;
             const diff = startX - currentX;
             const percentage = diff / slideshowContainer.offsetWidth;
-            const threshold = 0.3; // 30% threshold to trigger slide change
-            
-            // Re-enable transitions
-            currentSlideElement.style.transition = '';
-            if (nextSlideElement) nextSlideElement.style.transition = '';
-            if (prevSlideElement) prevSlideElement.style.transition = '';
+            const threshold = 0.2; // 20% threshold to trigger slide change
             
             if (Math.abs(percentage) > threshold) {
-                // Complete the slide change
+                // Complete the slide change - no animation, just instant switch
                 if (percentage > 0) {
                     // Swipe left - next slide
-                    changeSlideWithAnimation(1);
+                    currentSlideIndex = (currentSlideIndex + 1) % slides.length;
                 } else {
                     // Swipe right - previous slide
-                    changeSlideWithAnimation(-1);
+                    currentSlideIndex = (currentSlideIndex - 1 + slides.length) % slides.length;
                 }
+                
+                // Update active states instantly
+                slides.forEach((slide, index) => {
+                    if (index === currentSlideIndex) {
+                        slide.classList.add('active');
+                        slide.style.transform = 'translateX(0)';
+                        slide.style.opacity = '1';
+                    } else {
+                        slide.classList.remove('active');
+                        slide.style.transform = '';
+                        slide.style.opacity = '';
+                    }
+                });
+                
+                // Update indicators
+                indicators.forEach((indicator, index) => {
+                    if (index === currentSlideIndex) {
+                        indicator.classList.add('active');
+                    } else {
+                        indicator.classList.remove('active');
+                    }
+                });
             } else {
-                // Snap back to current slide
-                snapBackToCurrent();
+                // Snap back to current slide - no animation
+                currentSlideElement.style.transform = 'translateX(0)';
+                nextSlideElement.style.transform = 'translateX(100%)';
+                prevSlideElement.style.transform = 'translateX(-100%)';
             }
+            
+            // Re-enable transitions for future interactions
+            slides.forEach(slide => {
+                slide.style.transition = '';
+            });
         }
     });
-    
-    function changeSlideWithAnimation(direction) {
-        const newSlideIndex = (currentSlideIndex + direction + slides.length) % slides.length;
-        const newSlide = slides[newSlideIndex];
-        
-        // Animate to final position
-        if (direction > 0) {
-            currentSlideElement.style.transform = 'translateX(-100%)';
-            newSlide.style.transform = 'translateX(0)';
-        } else {
-            currentSlideElement.style.transform = 'translateX(100%)';
-            newSlide.style.transform = 'translateX(0)';
-        }
-        
-        // Update active states
-        setTimeout(() => {
-            currentSlideElement.classList.remove('active');
-            newSlide.classList.add('active');
-            indicators[currentSlideIndex % indicators.length].classList.remove('active');
-            indicators[newSlideIndex % indicators.length].classList.add('active');
-            currentSlideIndex = newSlideIndex;
-            
-            // Reset all slide positions
-            resetSlidePositions();
-        }, 300);
-    }
-    
-    function snapBackToCurrent() {
-        currentSlideElement.style.transform = 'translateX(0)';
-        if (nextSlideElement) nextSlideElement.style.transform = 'translateX(100%)';
-        if (prevSlideElement) prevSlideElement.style.transform = 'translateX(-100%)';
-        
-        setTimeout(() => {
-            resetSlidePositions();
-        }, 300);
-    }
-    
-    function resetSlidePositions() {
-        slides.forEach((slide, index) => {
-            if (index === currentSlideIndex) {
-                slide.style.transform = 'translateX(0)';
-                slide.style.opacity = '1';
-            } else {
-                slide.style.transform = '';
-                slide.style.opacity = '';
-            }
-        });
-    }
     
     // Pause auto-slide on hover (desktop only)
     slideshowContainer.addEventListener('mouseenter', function() {
@@ -194,31 +167,12 @@ function changeSlide(direction) {
     const newSlide = slides[newSlideIndex];
     
     if (isMobile) {
-        // Mobile: Use sliding animations
-        // Set up the new slide position based on direction
-        if (direction > 0) {
-            // Moving to next slide (swipe left)
-            newSlide.classList.add('slide-right');
-            newSlide.classList.remove('slide-left');
-        } else {
-            // Moving to previous slide (swipe right)
-            newSlide.classList.add('slide-left');
-            newSlide.classList.remove('slide-right');
-        }
-        
-        // Remove active class from current slide and indicator
+        // Mobile: Instant switch, no animations
         currentSlide.classList.remove('active');
         indicators[currentSlideIndex % indicators.length].classList.remove('active');
         
-        // Add active class to new slide and indicator
         newSlide.classList.add('active');
         indicators[newSlideIndex % indicators.length].classList.add('active');
-        
-        // Clean up classes after animation
-        setTimeout(() => {
-            currentSlide.classList.remove('slide-left', 'slide-right');
-            newSlide.classList.remove('slide-left', 'slide-right');
-        }, 300);
     } else {
         // Desktop: Use fade transition
         currentSlide.classList.remove('active');
@@ -247,32 +201,12 @@ function currentSlide(slideNumber) {
         const newSlide = slides[targetIndex];
         
         if (isMobile) {
-            // Mobile: Use sliding animation based on direction
-            const direction = targetIndex > currentSlideIndex ? 1 : -1;
-            
-            if (direction > 0) {
-                // Moving forward
-                newSlide.classList.add('slide-right');
-                newSlide.classList.remove('slide-left');
-            } else {
-                // Moving backward
-                newSlide.classList.add('slide-left');
-                newSlide.classList.remove('slide-right');
-            }
-            
-            // Remove active class from current slide and indicator
+            // Mobile: Instant switch, no animations
             currentSlide.classList.remove('active');
             indicators[currentSlideIndex % indicators.length].classList.remove('active');
             
-            // Add active class to new slide and indicator
             newSlide.classList.add('active');
             indicators[targetIndex % indicators.length].classList.add('active');
-            
-            // Clean up classes after animation
-            setTimeout(() => {
-                currentSlide.classList.remove('slide-left', 'slide-right');
-                newSlide.classList.remove('slide-left', 'slide-right');
-            }, 300);
         } else {
             // Desktop: Use fade transition
             currentSlide.classList.remove('active');
